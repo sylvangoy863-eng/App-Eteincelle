@@ -1,11 +1,11 @@
-const CACHE_NAME = 'etincelle-cache-v1';
+const CACHE_NAME = 'etincelle-cache-v2';
 const urlsToCache = [
     '/',
     '/index.html',
     '/manifest.json',
     // Ajoutez ici les chemins de vos icônes
-    '/images/icon-192x192.png', 
-    '/images/icon-512x512.png',
+    '/image/icon-192x192.png', 
+    '/image/icon-512x512.png',
     // Tailwind CSS est chargé depuis un CDN, donc pas besoin de le cacher.
 ];
 
@@ -50,4 +50,5 @@ self.addEventListener('fetch', event => {
       }
     )
   );
+
 });
