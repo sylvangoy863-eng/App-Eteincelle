@@ -1,0 +1,22 @@
+{
+    "name": "Étincelle - Le Jeu des Couples",
+    "short_name": "Étincelle",
+    "description": "Le jeu qui rend votre relation plus passionnante. Par Sylva.",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f7f7f7",
+    "theme_color": "#ec4899",
+    "icons": [
+        {
+            "src": "images/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "images/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

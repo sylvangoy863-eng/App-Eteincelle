@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Étincelle - Le Jeu des Couples</title>
+    
+    <!-- PWA Manifest & Icônes pour l'installation -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Étincelle">
+    <!-- Thème couleur principal : rose/rouge, correspondant à la palette du jeu -->
+    <meta name="theme-color" content="#ec4899">
+    
+    <!-- Chargement de Tailwind CSS pour un design moderne et responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuration de la police Inter -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7; /* Arrière-plan très clair */
+        }
+        /* Style pour les cartes de catégories */
+        .category-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Assure que la modale est au-dessus de tout */
+        #custom-modal {
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Conteneur principal de l'application -->
+    <div id="app-container" class="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 md:p-8 transform transition-all duration-500 ease-in-out">
+
+        <!-- Écran de Bienvenue / Enregistrement (Initial) -->
+        <section id="screen-welcome" class="space-y-6">
+            <h1 class="text-4xl font-extrabold text-center text-pink-600 mb-2">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-red-500">Étincelle</span>
+            </h1>
+            <p class="text-center text-gray-500 text-sm italic">Bienvenue sur l'App de de Sylva, le jeu qui rend votre relation plus passionnante.</p>
+
+            <div class="space-y-4 pt-4">
+                <label class="block text-sm font-medium text-gray-700" for="user-name">Mon Nom :</label>
+                <input type="text" id="user-name" placeholder="Ex: Sylva" class="w-full p-3 border-2 border-pink-200 rounded-xl focus:ring-pink-500 focus:border-pink-500 transition duration-300">
+
+                <label class="block text-sm font-medium text-gray-700" for="partner-name">Nom de mon/ma Partenaire :</label>
+                <input type="text" id="partner-name" placeholder="Ex: Darleve" class="w-full p-3 border-2 border-pink-200 rounded-xl focus:ring-pink-500 focus:border-pink-500 transition duration-300">
+
+                <label class="block text-sm font-medium text-gray-700" for="user-gender">Mon Genre :</label>
+                <select id="user-gender" class="w-full p-3 border-2 border-pink-200 rounded-xl bg-white focus:ring-pink-500 focus:border-pink-500 transition duration-300">
+                    <option value="" disabled selected>Choisir mon genre</option>
+                    <option value="H">Homme</option>
+                    <option value="F">Femme</option>
+                    <option value="A">Autre</option>
+                </select>
+            </div>
+            <button onclick="saveUserInfo()" class="w-full py-4 px-6 mt-6 text-xl font-bold text-white bg-gradient-to-r from-pink-500 to-red-500 rounded-full shadow-lg shadow-pink-300 hover:shadow-xl transition transform hover:scale-105 duration-300">
+                C'est Parti !
+            </button>
+        </section>
+
+        <!-- Écran du Menu Principal (Caché initiallement) -->
+        <section id="screen-menu" class="hidden space-y-8">
+            <header class="text-center">
+                <h2 class="text-3xl font-bold text-gray-800">Bonjour <span id="welcome-user" class="text-pink-600"></span> !</h2>
+                <p class="text-gray-500 mt-1">Sylva vous demande de choisir une catégorie ou jouez à Action ou Vérité.</p>
+            </header>
+
+            <div id="category-list" class="grid grid-cols-3 gap-3">
+                <!-- Les cartes de catégories seront insérées ici par JS -->
+            </div>
+
+            <!-- Bouton Action ou Vérité -->
+            <button onclick="showAOV()" class="w-full py-3 px-4 text-lg font-semibold text-white bg-gradient-to-r from-purple-500 to-indigo-600 rounded-xl shadow-md shadow-purple-300 hover:shadow-lg transition transform hover:scale-105 duration-300 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.222l5.578 5.578A1 1 0 0116 8.5v6a1 1 0 01-.222.623l-5.578 5.578A2 2 0 018 20.5v-18a2 2 0 013.049-.278z" />
+                </svg>
+                Action ou Vérité
+            </button>
+        </section>
+
+        <!-- Écran de la Catégorie Questions (Caché initiallement) -->
+        <section id="screen-questions" class="hidden space-y-6">
+            <button onclick="startCategory(appState.currentCategory.id)" class="text-pink-600 hover:text-pink-800 transition duration-300 flex items-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Retour au Menu
+            </button>
+
+            <h2 id="question-category-title" class="text-3xl font-bold text-gray-800 text-center mb-4"></h2>
+            
+            <div class="bg-pink-50 p-6 rounded-2xl border-2 border-pink-200 min-h-[150px] flex items-center justify-center shadow-inner">
+                <p id="current-question" class="text-xl text-center font-medium text-gray-700">Cliquez sur "Question Suivante" pour commencer !</p>
+            </div>
+
+            <div class="text-center pt-4">
+                <span class="text-sm text-gray-500">
+                    Question <span id="question-count">0</span> sur <span id="total-questions">0</span>
+                </span>
+            </div>
+            
+            <button onclick="nextQuestion()" class="w-full py-4 px-6 text-xl font-bold text-white bg-gradient-to-r from-pink-500 to-red-500 rounded-full shadow-lg shadow-pink-300 hover:shadow-xl transition transform hover:scale-105 duration-300">
+                Question Suivante
+            </button>
+        </section>
+
+        <!-- Écran Action ou Vérité (Caché initiallement) -->
+        <section id="screen-aov" class="hidden space-y-6">
+            <button onclick="showMenu()" class="text-purple-600 hover:text-purple-800 transition duration-300 flex items-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Retour au Menu
+            </button>
+
+            <h2 class="text-3xl font-bold text-purple-800 text-center mb-4">Action ou Vérité ?</h2>
+            
+            <div class="bg-purple-50 p-6 rounded-2xl border-2 border-purple-200 min-h-[150px] flex items-center justify-center shadow-inner">
+                <p id="aov-challenge" class="text-xl text-center font-medium text-gray-700">Prêt(e)s pour le défi ?</p>
+            </div>
+
+            <div class="pt-4 space-y-4">
+                <button onclick="generateAOV('action')" class="w-full py-4 px-6 text-xl font-bold text-white bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full shadow-lg shadow-yellow-300 hover:shadow-xl transition transform hover:scale-105 duration-300">
+                    Action !
+                </button>
+                <button onclick="generateAOV('truth')" class="w-full py-4 px-6 text-xl font-bold text-white bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full shadow-lg shadow-blue-300 hover:shadow-xl transition transform hover:scale-105 duration-300">
+                    Vérité !
+                </button>
+            </div>
+        </section>
+
+        <!-- Modale de message (remplace alert) -->
+        <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
+                <h3 id="modal-title" class="text-xl font-bold mb-3 text-gray-800"></h3>
+                <p id="modal-body" class="text-gray-600 mb-6"></p>
+                <button onclick="closeModal()" class="w-full py-3 font-semibold text-white bg-pink-500 rounded-full hover:bg-pink-600 transition">
+                    Compris
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA DE L'APPLICATION (Questions) ---
+        // ATTENTION : L'icône de la catégorie 'hot' a été remplacée par un simple emoji (🔥)
+        // pour éviter tout problème d'interprétation du SVG en environnement local.
+        const QUESTIONS_DATA = [
+            {
+                id: 'hot',
+                title: 'Zone Hot 🔥',
+                icon: `<span>🔥</span>`, // Simplifié pour éviter les problèmes d'affichage locaux
+                color: 'bg-red-100 text-red-700',
+                questions: [
+                    "Quel est le lieu le plus insolite où vous aimeriez faire l'amour ?",
+                    "Quelle est la première chose qui vous a attiré(e) physiquement chez moi ?",
+                    "Quel est votre fantasme le plus secret que vous n'avez jamais osé me confier ?",
+                    "Quelle partie de mon corps préférez-vous embrasser et pourquoi ?",
+                    "Quelle est la tenue que vous préférez me voir porter (ou enlever) ?",
+                    "Décrivez-moi en trois mots une de nos meilleures nuits.",
+                    "Si nous pouvions expérimenter un nouveau jeu érotique, lequel choisiriez-vous ?",
+                    "Quel est le geste romantique non sexuel qui vous met le plus dans l'ambiance ?",
+                    "Quelle est la limite que vous aimeriez repousser avec moi ?",
+                    "Quel est le moment le plus sexy que nous ayons partagé jusqu'à présent ?",
+                    "Quelle musique ou ambiance vous donne le plus envie de me séduire ?",
+                    "Si vous pouviez m'envoyer un message hot de trois mots, quel serait-il ?",
+                    "Quelle est ta position préférée ? ", 
+                    "Préfères‑tu les caresses légères ou les pressions ? ",  
+                    "Quel endroit du corps te donne le plus de frissons ? ",  
+                    "Aimes‑tu allumer une musique ou une lumière tamisée ? ",  
+                    "As‑tu déjà eu un rêve érotique avec moi ?  ",
+                    "Qu’est‑ce qui t’excite le plus chez moi physiquement ? ",  
+                    "Préfères‑tu le matin ou la nuit ?   ",
+                    "As‑tu un fantasme que tu n’as jamais osé partager ? ",  
+                    "Aimes‑tu les massages intimes ?   ",
+                    "Que penses‑tu des sextos / messages coquins ? ",  
+                    "Aimes‑tu les jeux de rôle ou les déguisements ?  ", 
+                    "As‑tu déjà surpris ton désir de façon inattendue ?  ", 
+                    "Quel vêtement trouves‑tu le plus sexy sur moi ?   ",
+                    "Préfères‑tu parler ou rester silencieux quand on est intime ? ",  
+                    "Préfères‑tu être initiateur ou être initié ?   ",
+                    "Quels mots doux ou phrases t’excitent ?   ",
+                    "Comment réagirais‑tu si je te surprends avec une caresse ? ",  
+                    "Préfères‑tu le slow ou le mouvement rapide ?   ",
+                    "Aimes‑tu le contact peau à peau prolongé ?   ",
+                    "Aimes‑tu “te faire désirer” un peu avant ? ",
+                     "Qu’est‑ce qui te dérange dans l’intimité ? " , 
+                     "Aimes‑tu essayer de nouvelles choses ?  " ,
+                     "Es‑tu à l’aise de dire ce que tu veux au lit ? " , 
+                     "As‑tu déjà ressenti un désir incontrôlable pour moi ? " , 
+                     "Qu’est‑ce que je peux faire pour te rendre fou/folle de désir ? " , 
+                     "Préfères‑tu l’intimité douce ou passionnée ?   ",
+                     "Aimes‑tu les touches subtiles (cou, oreilles, etc.) ? "  ,
+                     "Aimes‑tu les baisers longs ?  " ,
+                     "Aimerais‑tu qu’on change d’endroit pour un moment intime ?  " ,
+                     "Préfères‑tu le contact clair (main nue) ou avec tissu (linge) ?  " ,
+                     "Aimes‑tu partager un bain ou douche intime ?   ",
+                     "Que ressens‑tu quand je t’embrasse dans un endroit public ?  " ,
+                     "Préfères‑tu que j’initie souvent ?  " ,
+                     "Quel parfum / odeur t’excite le plus ?  ", 
+                     "Aimes‑tu les jeux lents ou progressifs ?   ",
+                     "As‑tu un signe “secret” pour me dire que tu es excité(e) ? ",  
+                     "Préfères‑tu les caresses légères ou appuyées ?   ",
+                     "Aimes‑tu prolonger le moment après l’acte (câlins, caresses) ?  ", 
+                     "Quelle musique te met dans l’ambiance ?   ",
+                     "Préfères‑tu me regarder dans les yeux ou fermer les yeux ?  ", 
+                     "As‑tu déjà voulu faire l’amour dans un lieu insolite ?   ",
+                     "Aimes‑tu les surprises intimes ?   ",
+                     "Aimerais‑tu que je te susurre quelque chose au creux de l’oreille ? ",
+                      "Quel geste te donne des papillons instantanément ?  ", 
+                      "Préfères‑tu “préliminaires” longs ou aller droit au but ? ",  
+                      "Aimerais‑tu expérimenter de nouvelles textures (soie, plumes, etc.) ? ",  
+                      "Aimes‑tu les positions spontanées ou planifiées ?   ",
+                      "Quel est ton fantasme secret le plus discret ?   ",
+                      "Aimerais‑tu que je te masse les pieds ou le dos ?   ",
+                      "Qu’est‑ce qui te rend le plus attirant(e) pour moi physiquement ? ",
+
+
+                ]
+            },
+            {
+                id: 'avenir',
+                title: 'Nos Projets',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+                color: 'bg-green-100 text-green-700',
+                questions: [
+                    "Où rêvez-vous de vivre d'ici 10 ans et pourquoi ?",
+                    "Quelle est la plus grande aventure que nous pourrions vivre ensemble ?",
+                    "Quel est le plus grand objectif que nous devrions atteindre dans les 5 prochaines années ?",
+                    "Comment imaginez-vous notre vie lorsque nous serons à la retraite ?",
+                    "Quelle nouvelle tradition de couple aimeriez-vous instaurer ?",
+                    "Quel type de voyage n'avons-nous jamais fait et que nous devrions planifier ?",
+                    "Si nous avions plus de temps libre, à quel projet personnel ou commun l'utiliseriez-vous ?",
+                    "Selon vous, quelle est la chose la plus importante que nous devrons enseigner à nos futurs enfants ?",
+                    "Quel rêve non réalisé voulez-vous absolument que je vous aide à accomplir ?",
+                    "Comment allons-nous fêter notre prochain grand anniversaire de couple ?",
+                    "Comment pouvons-nous mieux soutenir nos objectifs de carrière mutuels ?",
+                    "Quelle décision importante aimeriez-vous prendre en priorité l'année prochaine ?",
+                    "Quel est notre projet de vie que tu rêves de commencer avec moi ?  ", 
+                    "Où voudrais-tu qu’on vive dans 5 ans ? ",  
+                   "Quel type d’investissement voudrais-tu que nous fassions ensemble ? ",  
+                    "Veux‑tu qu’on ait des enfants ? Combien ? ",  
+                    "Quel business aimerais‑tu lancer ensemble ? ",  
+                 "Quel style de maison voudrais‑tu avoir ?   ",
+                  "Quelle ville ou pays aimerais-tu qu’on explore ensemble ? ",  
+                   "Veux‑tu que nous travaillions ensemble dans un domaine ?   ",
+                   "Quel grand projet financier veux‑tu qu’on atteigne ?   ",
+                    "Aimerais‑tu créer une fondation ou œuvre sociale ensemble ? ",  
+                    "Quel est un objectif que je peux soutenir pour toi ?   ",
+                       "Veux‑tu qu’on fasse des formations ou études ensemble ? ",  
+                  "Quel est ton rêve professionnel que tu veux partager avec moi ? ", 
+                     "Quel serait notre retraite idéale ? ",
+                     "Aimerais‑tu qu’on voyage comme couple chaque année ?  ", 
+                   "Quelle voiture aimerais‑tu qu’on achète ensemble ?  ",
+                    "Voulez‑vous faire un projet artistique ensemble ?   ",
+                   "Quel serait notre style de vie idéal (champagne, simplicité, etc.) ? ",  
+                       "Aimerais‑tu qu’on prenne un local pour un business commun ? ",  
+                     "Qu’est‑ce qu’on pourrait bâtir ensemble pour laisser un héritage ? ",
+
+
+                ]
+            },
+            {
+                id: 'profondeur',
+                title: 'Âmes Sœurs',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.1.9 2 2 2h12a2 2 0 002-2V7M4 7h16M4 7L12 3l8 4M12 11V3" /></svg>`,
+                color: 'bg-blue-100 text-blue-700',
+                questions: [
+                    "Quelle est la plus grande peur que vous avez réussi à surmonter ?",
+                    "Quel est le trait de caractère que vous admirez le plus chez moi ?",
+                    "Si vous pouviez changer une chose dans le monde, quelle serait-elle ?",
+                    "Qu'est-ce qui vous rend le plus fier(ère) de vous en ce moment ?",
+                    "Quel souvenir de votre enfance a façonné la personne que vous êtes ?",
+                    "Quelle est la chose la plus difficile que vous ayez jamais eu à me pardonner ?",
+                    "Si vous aviez une semaine à vivre, comment la passeriez-vous ?",
+                    "Quel conseil donneriez-vous à votre 'moi' de 18 ans ?",
+                    "Quelle est la chose que vous trouvez la plus difficile à accepter dans notre relation ?",
+                    "Quelle est la dernière fois que vous vous êtes senti(e) vraiment vulnérable ?",
+                    "Qu'est-ce qui vous apporte le plus de calme et de sérénité ?",
+                    "Quel est le plus grand risque que vous avez pris pour moi ?",
+                     "Que signifie “âme sœur” pour toi ? ",  
+                    "Crois‑tu que nous sommes âmes sœurs ? Pourquoi ? ",  
+  "Qu’est‑ce que tu sens quand nos regards se croisent ?   ",
+  "Qu’est‑ce qui rend notre lien unique ?   ",
+  "Comment sais‑tu que tu m’aimes de l’âme ?   ",
+  "Qu’est‑ce que tu ferais sans moi ?   ",
+ "Peux‑tu décrire un moment où tu t’es senti(e) “connecté” à mon âme ? ",  
+   "Quelle qualité spirituelle admires‑tu le plus en moi ?   ",
+  "As‑tu déjà ressenti que nos vies étaient liées avant de se rencontrer ? ",  
+   "Quelle expérience spirituelle veux‑tu partager avec moi ?   ",
+  "Que veux‑tu que notre lien devienne dans l’éternité ?   ",
+ "Crois‑tu aux “vies antérieures” ou “destin” ?   ",
+  "Comment veux‑tu qu’on grandisse ensemble spirituellement ? ",  
+ "Que veux‑tu que je sache de ton cœur profond ?   ",
+  "Quelle promesse spirituelle te rend heureux(se) ? ",
+   "Que ferais‑tu pour sauver ce lien ?  ", 
+  "Quel verset biblique te fait penser à nous ?  ", 
+  "Que veux‑tu qu’on prenne comme “mission de couple” spirituelle ? ",  
+  "Qu’est‑ce que l’âme de l’autre t’inspire ?   ",
+  "Quand perdrais‑tu tout sauf moi, que me resterait‑il ? ",  
+  "Qu’est‑ce qu’on pourrait faire pour renforcer notre âme ensemble ? ",  
+  "Quelle prière veux‑tu qu’on prie ensemble chaque jour ?   ",
+  "À quand remonte la première fois que tu as senti notre lien spirituel ? ",  
+  "Comment veux‑tu qu’on honore Dieu à travers notre relation ?   ",
+  "Qu’est‑ce que tu me demandes de prier pour ton âme ? ",
+
+                ]
+            },
+            {
+                id: 'souvenirs',
+                title: 'Nos Souvenirs',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3v-1" /></svg>`,
+                color: 'bg-purple-100 text-purple-700',
+                questions: [
+                    "Quel est le moment exact où vous avez réalisé que vous étiez amoureux/amoureuse de moi ?",
+                    "Quel est le meilleur cadeau que je vous ai jamais offert et pourquoi ?",
+                    "Racontez-moi un moment où nous avons été extrêmement stupides ensemble.",
+                    "Quel est votre souvenir préféré de notre premier rendez-vous ?",
+                    "Si notre histoire était un film, quel serait le titre de la scène la plus drôle ?",
+                    "Quel est l'endroit où nous avons été qui vous manque le plus ?",
+                    "Quel a été le plus grand obstacle que nous avons surmonté en tant que couple ?",
+                    "Quel est le compliment que vous faites souvent sur moi quand je ne suis pas là ?",
+                    "Comment vous sentiez-vous juste avant notre premier baiser ?",
+                    "Si vous pouviez revivre un jour de notre relation, lequel choisiriez-vous ?",
+                    "Quel est le premier souvenir que tu as de nous deux ? ",  
+"Quel est ton moment préféré qu’on a partagé l’an passé ?  ", 
+"Quelle a été ta première impression de moi ?   ",
+"Rappelle un voyage qu’on a fait ensemble.   ",
+"Quel repas partagé tu n’oublieras jamais ? ", 
+"Quel fou rire entre nous ?   ",
+"Quel moment de lutte que nous avons dépassé ensemble ?  ", 
+"Quel cadeau que j’ai fait qui t’a marqué ?   ",
+"Quel film ou série qu’on a regardé ensemble et que tu aimes encore ?  ", 
+"Quelle chanson rappelle‑toi de nous ?   ",
+"Un lieu qu’on a visité ensemble et que tu veux y retourner ?  ", 
+"Quelle première date tu te souviens le plus ? ",
+"Quel défi qu’on a surmonté en couple ?   ",
+"Quel foufou moment spontané qu’on a vécu ?   ",
+"Où étions‑nous quand on s’est embrassés la première fois ?  ", 
+"Qu’est‑ce que j’ai fait pour toi et que tu n’oublieras jamais ?  ", 
+"Quelle tenue je portais quand tu m’as aimé (“wow”) ?  ", 
+ "La chose la plus drôle que j’ai faite ?  ", 
+"Le jour où j’ai pleuré devant toi ?   ",
+"Un moment où tu m’as soutenu quand j’allais mal ?  ", 
+"Quel souvenir de famille on a vécu ensemble ?  ", 
+"Quel moment malade (improvisé) qu’on a fait ?  ", 
+"Le moment où on a affrontré une peur ensemble ?   ",
+"Le moment que tu regrettes moins mais que tu remercies ?  ", 
+"Une surprise que je t’ai faite et que ça t’a touché ?  ", 
+"Quel fou rire tard dans la nuit ensemble ?   ",
+"Une promenade qu’on a faite main dans la main ? ",  
+"Le moment où on a pleuré ensemble ?   ",
+"Une fois où on a voyage? ",
+                ]
+            },
+            {
+                id: 'finances',
+                title: 'Finances',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m0 0l-1.5 1.5M7 16l1.5-1.5M7 16h8m-8 0a1 1 0 100 2 1 1 0 000-2zm-1 2a1 1 0 112 0H6zm9 0a1 1 0 112 0h-2z" /></svg>`,
+                color: 'bg-yellow-100 text-yellow-700',
+                questions: [
+                    "Quel est le meilleur achat commun que nous ayons fait ?",
+                    "Quelle est votre plus grande source d'inquiétude financière actuelle ?",
+                    "Quelle est la chose la plus folle pour laquelle nous pourrions économiser de l'argent ?",
+                    "Êtes-vous plutôt 'dépenser maintenant' ou 'économiser pour plus tard' ?",
+                    "Quel est le pourcentage de nos revenus que nous devrions idéalement épargner ?",
+                    "Si nous gagnions à la loterie, quelle serait la première chose que nous achèterions ensemble ?",
+                    "Quelle est la plus grande différence dans notre façon de gérer l'argent ?",
+                    "Quelle dépense mensuelle aimeriez-vous que nous réduisions ou éliminions ?",
+                    "Selon vous, quelle est la priorité numéro un pour nos finances futures ?",
+                    "Quel budget mensuel veux‑tu qu’on ait ensemble ? ",  
+"Quelle part de notre argent devrions‑nous épargner ensemble ?  ", 
+"Veux‑tu qu’on investisse ensemble (immobilier, actions, business) ?  ", 
+"Quelle est ta plus grande peur financière ?   ",
+"Si tu gagnais une grosse somme, que ferions‑nous en premier ? ",  
+"Préfères‑tu économiser ou dépenser dans des expériences ?   ",
+"Veux‑tu qu’on fasse un projet commun rentable ?   ",
+"Que penses‑tu des dettes ?   ",
+"Comment décider des achats importants ensemble ? ",  
+"Quel plan financier veut‑u mettre en place avec moi ?  ", 
+"Veux‑tu qu’on ait un compte commun ou chacun séparé ?  ",
+"Quelle est une dépense à laquelle je dois faire attention selon toi ? ",  
+"Quel objectif financier veux‑tu qu’on atteigne en 1 an ?   ",
+"Veux‑tu faire des dons ou des œuvres ensemble ?   ",
+"Préfères‑tu acheter neuf ou d’occasion ?   ",
+"Veux‑tu qu’on planifie notre retraite ensemble ? ",  
+"Quelle est ta vision de “richesse saine” dans un couple ? ",  
+"As‑tu des habitudes de dépense que tu veux changer ?   ",
+"Que veux‑tu que je sache de tes priorités financières ?   ",
+"Si jamais un de nous perdait ses revenus, comment réagirais‑tu ? ",
+,
+
+                ]
+            },
+            {
+                id: 'voyages',
+                title: 'Voyages',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243m11.314 0A8 8 0 115.657 5.657a8 8 0 0112.72 10.99z" /></svg>`,
+                color: 'bg-indigo-100 text-indigo-700',
+                questions: [
+                    "Quelle est la ville ou le pays que nous devons absolument visiter ensemble ?",
+                    "Quelle a été notre meilleure ou pire mésaventure de voyage ?",
+                    "Êtes-vous plutôt vacances 'all-inclusive' ou 'sac à dos et aventure' ?",
+                    "Si nous pouvions partir demain, où irions-nous et pourquoi ?",
+                    "Quel est l'endroit le plus romantique où vous aimeriez vous retrouver ?",
+                    "Décrivez votre journée de vacances parfaite, de A à Z.",
+                    "Quel est l'objet le plus inutile que vous ayez emporté en voyage ?",
+                    "Quel est votre souvenir de voyage préféré de quand vous étiez enfant ?",
+                    "Quelle activité insolite aimeriez-vous essayer pendant nos prochaines vacances ?",
+                    "Quel pays rêves‑tu qu’on visite ensemble ? ",  
+"Plutôt aventure ou détente pour nos voyages ?   ",
+"Quel souvenir de voyage t’a marqué ? ",  
+"Veux‑tu qu’on vive un moment inattendu en voyage ? ",  
+"Ville, montagne ou plage ?  ", 
+"Quel repas local veux‑tu absolument goûter quand on voyage ? ",  
+"Voyage dans le futur : où serions‑nous dans 10 ans ?   ",
+"Es‑tu plutôt sac à dos ou valise de luxe ?   ",
+"Préfères‑tu découvrir seul ou en couple ?   ",
+"Que prendre comme rituel quand on voyage ensemble ? ",  
+"Une destination romantique que tu imagines pour nous ? ",  
+"Quel moment à l’aube ou au coucher de soleil veux‑tu partager ? ",  
+"Voyager en surprises : tu aimerais qu’on organise ça ?   ",
+"Un voyage que tu ferais refaire une deuxième fois avec moi ? ",  
+"Si tu pouvais voyager maintenant, où irais‑tu ? ",
+
+
+
+                ]
+            },
+            {
+                id: 'famille',
+                title: 'Famille & Amis',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M12 20.5v-2.5m0 0V16m0 0a4 4 0 100-8 4 4 0 000 8zM9 19a1 1 0 01-1-1v-2a3 3 0 016 0v2a1 1 0 01-1 1H9z" /></svg>`,
+                color: 'bg-pink-100 text-pink-700',
+                questions: [
+                    "Quelle est la chose que vous avez apprise de votre mère ou de votre père que vous appliquez dans notre relation ?",
+                    "Comment aimeriez-vous que nous passions les fêtes de fin d'année à l'avenir ?",
+                    "Quel ami/amie aimeriez-vous que nous voyions plus souvent en couple ?",
+                    "Y a-t-il une règle non écrite de votre famille d'origine que nous devrions adopter (ou éviter) ?",
+                    "Quel est votre meilleur souvenir d'enfance lié à un de vos cousins ou frères/sœurs ?",
+                    "Si nous devions avoir un témoin dans notre vie, qui choisiriez-vous en dehors de la famille ?",
+                    "Quelle est la relation que vous aimeriez améliorer avec un membre de ma famille ?",
+                    "Si nous avions des enfants, quel rôle (le plus strict, le plus cool) préfèreriez-vous endosser ?",
+                    "Quel membre de ta famille veux‑tu me présenter d’abord ? ",  
+"Quelle est l’importance des amis dans notre relation selon toi ?  ", 
+"Veux‑tu qu’on passe plus de temps avec ta famille ?   ",
+"Une tradition familiale que tu tiens à garder ?   ",
+"Comment veux‑tu qu’on gère les conflits familiaux ensemble ? ",  
+"As‑tu des amis que je dois rencontrer absolument ? ",
+"Quel était ton plat préféré enfant ?  ",
+"Un châtiment ou une punition que tu te souviens ? ",  
+"Une anecdote drôle de ton enfance ?   ",
+"Quel rêve avais‑tu quand tu avais 10 ans ? ",  
+"Que signifiait “amitié” pour toi enfant ?   ",
+"Avais‑tu un héros / modèle quand tu étais petit ? ",  
+"Quel souvenir me raconterais‑tu de ta maison d’enfance ? ",  
+"Un endroit où tu aimais aller enfant ?   ",
+"Comment passais‑tu tes vacs étant jeune ?   ",
+"Quel est l’objet d’enfance que tu gardes encore ? ",  
+"Quel est le meilleur conseil que tes parents t’ont donné enfant ? ",  
+"Que ferais‑tu si tu retrouvais ton “moi enfant” aujourd’hui ? ",  
+"Quelle leçon de ton enfance tu veux que nos enfants retiennent ? ",
+
+                ]
+            },
+            {
+                id: 'enfance',
+                title: 'Enfance',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.526a2 2 0 01-1.789-2.894l3.5-7zM7 9H2V7h5v2zm0 4H2v-2h5v2zm0 4H2v-2h5v2zm0 4H2v-2h5v2z" /></svg>`,
+                color: 'bg-gray-200 text-gray-700',
+                questions: [
+                    "Quel était votre super-héros préféré ou votre personnage de dessin animé favori étant enfant ?",
+                    "Racontez-moi un moment où vous avez eu de gros problèmes avec vos parents.",
+                    "Quel était le rêve de métier que vous aviez à l'âge de 8 ans ?",
+                    "Quel est le jouet ou l'objet de votre enfance que vous aimeriez encore avoir ?",
+                    "Quelle est la leçon de vie la plus importante que vous avez apprise avant l'âge de 15 ans ?",
+                    "Racontez-moi une anecdote sur votre première crush ou votre premier béguin.",
+                    "Quelle est la nourriture que vous détestiez absolument, mais que vous aimez maintenant ?",
+                    "Si vous pouviez retourner dans votre école, quel message laisseriez-vous à votre jeune 'moi' ?",
+                    "Quel était le passe-temps le plus étrange ou inhabituel que vous aviez ?",
+                    "Quel est ton souvenir le plus heureux de l’enfance ? ",  
+"Quelle est ta plus grande peur quand tu étais enfant ?   ",
+"Un jeu ou jouet que tu aimais beaucoup ?   ",
+"Quelle était ta maison ou quartier d’enfance ? ",  
+"As‑tu un frère ou une sœur dont tu gardes un souvenir fort ?  ", 
+"Quel métier voulais‑tu faire enfant ?   ",
+"Une promesse que tu avais faite à toi-même quand tu étais enfant ? ",
+"Famille proche ou famille éloignée, qu’est-ce qui compte le plus pour toi ? ",  
+"Que veux‑tu que je sache de ta relation avec tes parents ?   ",
+"Comment veux‑tu équilibrer notre temps entre “amis” et “nous” ? ",  
+"Une fête familiale que tu aimes particulièrement ?   ",
+"Comment on inclut les amis dans notre couple ?   ",
+"Si un ami te demandait un conseil amoureux, que dirais‑tu ? ",  
+"Comment veux‑tu qu’on célèbre les liens familiaux ?   ",
+"Qu’est‑ce qui te vexe dans les relations familiales ?   ",
+"Veux‑tu que nos enfants connaissent ta famille ?   ",
+"Une amitié que tu regretteras jamais ?   ",
+"Un moment où ta famille t’a soutenu(e) ?   ",
+"Comment réagirais‑tu si un ami critiquait notre couple ? ",  
+"Que penses‑tu des rencontres “famille + couple” régulières ? ",  
+"Un trait de caractère d’un membre de ta famille que tu admires ? ",
+
+                ]
+            },
+            {
+                id: 'communication',
+                title: 'Communication',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.69A9 9 0 0112 3c4.97 0 9 3.582 9 8z" /></svg>`,
+                color: 'bg-teal-100 text-teal-700',
+                questions: [
+                    "Comment puis-je mieux vous réconforter lorsque vous êtes stressé(e) ou triste ?",
+                    "Quelle est la chose que j'ai dite récemment et qui vous a le plus touché(e) ?",
+                    "Quelle est votre façon préférée de résoudre un désaccord (parler immédiatement, attendre, écrire) ?",
+                    "Y a-t-il une phrase ou un mot que j'utilise et qui vous irrite sans que je le sache ?",
+                    "Selon vous, quelle est notre plus grande force en matière de communication de couple ?",
+                    "Quelle est la meilleure façon pour moi de vous demander de l'aide ?",
+                    "Quand vous êtes fâché(e), préférez-vous être seul(e) ou que je vous enlace ?",
+                    "Y a-t-il un sujet important que nous évitons de discuter ?",
+                    "À quel point êtes-vous satisfait(e) de notre capacité à parler de nos sentiments ?",
+                    "Quelle est ta manière préférée de discuter de sujets sérieux ? ",  
+"Préfères‑tu parler immédiatement ou prendre du temps pour digérer ? ",  
+"Que veux‑tu que je comprenne quand tu parles ?   ",
+"Quand je me tais, que ressens‑tu ?  ",
+"Comment veux‑tu que je réagisse quand tu es blessé(e) ? ",  
+"Qu’est‑ce que je fais qui freine ta parole ?   ",
+"Que pourrais‑je améliorer dans notre façon de communiquer ? ",  
+"Préfères‑tu les textos, appels ou face à face pour dire ce que tu ressens ? ",
+"Comment réagis‑tu quand je ne réponds pas tout de suite ?   ",
+"Veux‑tu qu’on ait un “moment de parole” régulier ?   ",
+"Comment me dire quand je fais mal sans me blesser ?   ",
+"Penses‑tu qu’on se comprend toujours ?   ",
+"Et quand tu es fatigué(e), comment veux‑tu qu’on discute ? ",  
+"Parler devant les amis ou en privé : tu préfères lequel ?   ",
+"Quand je te coupe la parole, comment tu te sens ?   ",
+"Veux‑tu que je reformule tes mots pour confirmer ?   ",
+"Comment veux‑tu qu’on parle de nos émotions ?   ",
+"Que faire si l’un de nous ne veut pas parler ?   ",
+"Quelle question je pourrais te poser tous les jours pour mieux te comprendre ?  ", 
+"Préfères‑tu que je sois direct ou doux dans mes mots ?   ",
+"Comment réagir quand tu es en colère ?   ", 
+"Est‑ce que je comprends quand tu parles silencieusement ?  ", 
+"Veux‑tu qu’on écrive nos pensées quand ça devient difficile ? ",  
+"Comment on reparle d’un sujet qu’on a fermé trop tôt ?   ",
+"Quand tout va bien, comment veux‑tu qu’on partage ?   ",
+"Es‑tu à l’aise de dire ce que tu envies / désires ?   ",
+"Que faire si je ne capte pas ce que tu dis ?  ",
+"Comment veux‑tu qu’on fasse la paix après un conflit ? ",  
+"Quelle est ta “règle de communication” idéale entre nous ? ",
+
+                ]
+            },
+            {
+                id: 'objectifs',
+                title: 'Rêves & Objectifs',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.618A9.75 9.75 0 0012 2A9.75 9.75 0 002.382 7.382 9.75 9.75 0 007.382 2.382" /></svg>`,
+                color: 'bg-lime-100 text-lime-700',
+                questions: [
+                    "Si vous pouviez avoir un talent instantanément, quel serait-il ?",
+                    "Quel est l'objectif personnel que vous visez en ce moment et comment puis-je vous aider ?",
+                    "Y a-t-il un rêve que vous avez mis de côté en entrant dans la relation ?",
+                    "Quelle est la plus grande ambition professionnelle que vous nourrissez ?",
+                    "Si vous deviez définir la réussite, quelle serait votre définition ?",
+                    "Quel type de personne voulez-vous devenir d'ici 5 ans ?",
+                    "Qu'est-ce qui vous motive vraiment à vous lever le matin, au-delà de moi ?",
+                    "Quel est le plus grand risque que vous êtes prêt(e) à prendre pour un rêve ?",
+                    "Quel est ton rêve que tu n’as jamais osé dire ? ",  
+"Où te vois‑tu dans 10 ans ?   ",
+"Quel objectif sportif veux‑tu atteindre ? ",  
+"Que veux‑tu accomplir spirituellement ?   ",
+"Un projet que tu veux lancer dans ta vie ?   ",
+"Quel métier de rêve t’attire ?   ",
+"Que veux‑tu laisser comme héritage ? ",  
+"Objectif financier à long terme ?   ",
+"Objectif relationnel (amitié, famille) ? ",  
+"Rêve de voyage que tu veux concrétiser ?   ",
+"Un défi que tu veux relever dans 1 an ?   ",
+"Qu’est‑ce que tu veux apprendre prochainement ? ",  
+"Rêve artistique ou créatif ?   ",
+"Quel rôle social veux‑tu jouer ?   ",
+"que ferais‑tu si tu avais tout l’argent du monde ? ",  
+"Quels objectifs pour notre couple ?  ",
+"ue veux‑tu qu’on réalise ensemble ?   ",
+"Objectif de santé / sportif ?    ",
+"Quel impact veux‑tu avoir autour de toi ? ",  
+"Quel rêve remettre en action ?   ",
+"Destination de rêve pour un projet ? ",  
+"Que veux‑tu accomplir avant 30 ans ?   ",
+"Un livre que tu veux écrire ou publier ?  ", 
+"Une invention ou idée que tu as dans le crâne ? ",  
+"Objectif spirituel pour cette année ?   ",
+"Quel talent veux‑tu développer ?   ",
+"Que veux‑tu que je t’aide à atteindre comme rêve", 
+                ]
+            },
+            {
+                id: 'passions',
+                title: 'Passions & Hobbies',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.5A.5.5 0 0112 5a.5.5 0 010 1.5zm0 11a.5.5 0 010 1.5.5.5 0 010-1.5zM7.5 12a.5.5 0 010 1.5.5.5 0 010-1.5zM16.5 12a.5.5 0 010 1.5.5.5 0 010-1.5zM12 8a4 4 0 100 8 4 4 0 000-8z" /></svg>`,
+                color: 'bg-orange-100 text-orange-700',
+                questions: [
+                    "Quelle est la passion que vous aimeriez que j'essaie d'apprendre avec vous ?",
+                    "Quel est le hobby que vous trouvez le plus relaxant ou méditatif ?",
+                    "Si vous pouviez maîtriser n'importe quel instrument de musique, lequel choisiriez-vous ?",
+                    "Quel genre de film/série pourriez-vous regarder en boucle sans jamais vous lasser ?",
+                    "Quelle est la chose la plus inattendue que vous avez découverte sur vous-même grâce à un hobby ?",
+                    "Quel livre, podcast ou documentaire m'a vraiment changé(e) récemment ?",
+                    "Quelle est l'activité que nous devrions faire ensemble au moins une fois par mois ?",
+                    "Si vous deviez choisir une seule cuisine pour le reste de votre vie, quelle serait-elle ?",
+                    "Quelle activité te passionne vraiment ?  ",  
+"Quel loisir te détend le plus ?   ",
+"Quel talent que tu aimerais développer ? ",  
+"Aimes‑tu dessiner, chanter, écrire ?    ",
+"Quelle passion tu avais enfant ?   ",
+"Que fais‑tu quand tu as du temps libre ? ",  
+"Hobby que tu veux pratiquer ensemble ?   ",
+"Sport que tu veux qu’on fasse ensemble ?   ",
+"Activité artistique que tu aimerais découvrir ? ",  
+"Lecture ou film que tu aimes revisiter ?   ",
+"Que dirais‑tu si je partageais ton hobby avec toi ? ",  
+"Musique que tu écoutes en passion ?   ",
+"Cuisine ou pâtisserie : quelle passion ? ",  
+"Quelle activité te rend heureux / heureuse instantanément ? ",  
+"Quel passe-temps aimerais‑tu qu’on fasse tous les deux ? ",
+
+                ]
+            },
+            {
+                id: 'compliments',
+                title: 'Compliments',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>`,
+                color: 'bg-red-200 text-red-800',
+                questions: [
+                    "Décrivez la chose que vous trouvez la plus belle chez moi (sans parler du physique).",
+                    "Quel est l'un de mes talents cachés que vous adorez ?",
+                    "Nommez une fois où j'ai fait preuve d'une grande intelligence ou d'une sagesse particulière.",
+                    "Quelle est la petite chose que je fais tous les jours qui vous rend le plus heureux/heureuse ?",
+                    "Si j'étais un plat, quel serait-il et pourquoi (cela doit être positif !) ?",
+                    "Quel est le plus grand atout que j'apporte à notre relation ?",
+                    "Dites-moi une qualité que vous m'enviez secrètement.",
+                    "Qu'est-ce que vous trouvez de plus charmant dans ma façon d'interagir avec les autres ?",
+                    "Qu’est-ce que tu trouves le plus beau chez moi ? ",  
+"Quel mot doux aimerais‑tu entendre plus souvent ?   ",
+"Quelle qualité m’admires‑tu le plus ?   ",
+"Quel geste de moi t’a touché récemment ?   ",
+"À quel moment t’as‑tu senti(e) fier / fière de moi ? ",  
+"Qu’est-ce que tu aimes de mon sourire ?   ",
+"Quel compliment voudrais‑tu que je te dise ce soir ? ",
+"Quelle chose je fais bien dans notre couple ?   ",
+"Ce que tu trouves sexy chez moi en mots ?   ",
+"Quel petit geste que je fais que tu adores ?   ",
+"Compliment sur ma voix, mon regard, mes mains ?   ",
+"Que dis‑tu de ma façon de prendre soin de toi ?   ",
+"Compliment sur ma tenue ou style ?   ",
+"Qu’est-ce que tu aimes de mon caractère ? ",  
+"Quel moment où j’ai bien parlé / bien agi ?   ",
+"Quand je te soutiens, qu’est-ce que ça t’apporte ? ",  
+"Si tu devais me vanter à un(e) ami(e), que tu dirais ? ",  
+"Quel mot d’encouragement tu attends de moi ?   ",
+"Compliment sur ma bonté, patience, amour ?   ",
+"Ce que tu aimes de nous deux ensemble ? ",
+
+
+                ]
+            },
+            {
+                id: 'ideal',
+                title: 'Journée Idéale',
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7v3m-3-3h6" /></svg>`,
+                color: 'bg-cyan-100 text-cyan-700',
+                questions: [
+                    "Décrivez notre matinée idéale sans travail ni obligations.",
+                    "Quel film regarderions-nous lors de notre soirée idéale ?",
+                    "Quel repas préparerions-nous (ou mangerions-nous) lors de cette journée spéciale ?",
+                    "Où irions-nous si l'argent n'était pas un problème pour cette journée ?",
+                    "Qu'est-ce qui rendrait la fin de cette journée idéale absolument parfaite ?",
+                    "Quelle est l'activité la plus relaxante que nous pourrions faire ensemble ce jour-là ?",
+                    "Y a-t-il une personne que vous inviteriez à partager un moment avec nous pendant cette journée ?",
+                    "Quel est le moment le plus important de cette journée idéale pour vous ?",
+                    "À quelle heure commencerait ta journée parfaite ? ",  
+"Avec qui commencerais‑tu la journée ?   ",
+"Premier repas de la journée idéal ?   ",
+"Activité que tu ferais immédiatement ?   ",
+"Moment de détente parfait ?   ",
+"Que ferions‑nous pour le déjeuner ? ",  
+"Après-midi idéale ?   ",
+"Moment romantique que tu veux que je prévoit ? ",  
+"Repas du soir de rêve ?   ",
+"Après le dîner, que ferions‑nous ? ",  
+"Quel film ou activité pour finir la journée ? ",  
+"Moment pour prier ou méditer dans ta journée idéale ? ",  
+"À quelle heure dormirais‑tu ? ",
+"Quel geste d’amour pour clôturer la journée ? ",  
+"Que dirais‑tu juste avant de dormir à moi ? ",
+
+                ]
+            }
+        ];
+
+        // --- DATA Action ou Vérité ---
+        const AOV_DATA = {
+            action: [
+                "Donnez-moi un baiser passionné de 15 secondes sans utiliser vos mains.",
+                "Imitez un animal de votre choix jusqu'à ce que votre partenaire devine lequel.",
+                "Faites une déclaration d'amour spontanée à votre partenaire.",
+                "Écrivez un message flatteur sur la main de votre partenaire.",
+                "Faites une danse sexy de 30 secondes au milieu de la pièce.",
+                "Faites un massage des épaules à votre partenaire pendant une minute.",
+                "Dessinez le portrait de votre partenaire les yeux fermés.",
+                "Chantez une chanson d'amour avec une voix ridicule.",
+                "Tenez la main de votre partenaire pendant 5 minutes, sans parler.",
+                "Fais 5 pompes maintenant",  
+"Danse sans musique pendant 30 secondes",  
+"Envoie un cœur à ton ex",  
+"Fais semblant de pleurer comme un bébé",  
+"Montre la dernière photo dans ta galerie",  
+"Chante un couplet de ta chanson préférée",  
+"Fais une déclaration d’amour à la personne à ta gauche",  
+"Imite un animal pendant 10 secondes",  
+"Appelle quelqu’un et dis-lui que tu l’aimes",  
+"Fais une grimace et garde-la 15 secondes",  
+"Fais semblant de te réveiller d’un cauchemar",  
+"Envoie un message gênant à un contact au hasard",  
+"Fais 3 tours sur toi-même et marche droit",  
+"Répète ce que la personne à ta droite dit pendant 2 minutes",  
+"Fais comme si tu étais mannequin pendant 1 minute",  
+"Parle avec un accent bizarre pendant 2 minutes",  
+"Publie une story avec juste un emoji 🍆",  
+"Fais le bruit d’un coq qui chante au réveil",  
+"Fais un massage à la personne devant toi",  
+"Fais semblant d’avoir gagné à la loterie",  
+"Lèche ton coude si tu peux",  
+"Montre ton historique de recherche",  
+"Fais un selfie moche et poste-le",  
+"Imite une star que tu aimes",
+"Fais comme si tu étais au volant d’une voiture de luxe",  
+"Lis un message en mode théâtre dramatique",  
+"Mime une scène de film triste",  
+"Enlève une chaussette avec les dents",  
+"Fais une pub pour ton savon de douche",  
+"Fais semblant de draguer la personne à droite",  
+"Imite un professeur énervé",  
+"Fais une chanson improvisée avec 3 mots choisis par les autres",  
+"Fais semblant d’être au tribunal",  
+"Donne-toi un surnom ridicule et répète-le 3 fois",  
+"Danse comme si tu étais seul devant le miroir",  
+"Récite l’alphabet à l’envers",  
+"Fais une vidéo de 10 secondes où tu cries",  
+"Envoie un message vocal avec une voix d’enfant",  
+"Imite quelqu’un en colère",  
+"Parle sans fermer la bouche",  
+"Fais une déclaration d’amour à une chaussure",  
+"Chuchote tout ce que tu dis pendant 3 tours",  
+"Fais semblant de courir au ralenti",  
+"Répète ton prénom comme si tu le découvrais",  
+"Fais une blague nulle et ris très fort",  
+"Fais semblant de te brosser les dents sans brosse",  
+"Fais un compliment bizarre à la personne à ta gauche",  
+"Raconte une fausse histoire très sérieuse",  
+"Fais un beatbox pendant 15 seconds",  
+"Fais une pose de super-héros",  
+"Chante l’hymne national en mode reggae",  
+"Fais une déclaration sérieuse à un objet",
+"Dis une phrase en criant puis en murmurant",  
+"Fais semblant d’être ivre",  
+"Chante comme un bébé",  
+"Fais une marche militaire",  
+"Imite le bruit de ton animal préféré",  
+"Donne-toi une tape sur la tête et souris",  
+"Crie ‘Je suis une star’ et tourne",  
+"Appelle quelqu’un en l’appelant ‘papa Noël’",  
+"Lis un texte en mode robot",  
+"Dis un secret imaginaire très fort",  
+"Pose pour une pub de parfum invisible",  
+"Fais une scène de jalousie pour une bouteille d’eau",  
+"Fais une dispute avec toi-même",  
+"Fais semblant d’être interviewé à la télé",  
+"Récite une poésie inventée sur les chaussettes",  
+"Parle comme un rappeur pendant 1 minute",  
+"Parle en rimes pendant 2 minutes",  
+"Fais un slow avec un objet",  
+"Imite ton artiste préféré sur scène",  
+"Fais semblant de draguer un arbre",  
+"Déclare ta flamme à ton téléphone",  
+"Fais semblant d’être une star qui échoue",  
+"Fais un cri de victoire très bizarre",  
+"Lance un défi absurde à quelqu’un",  
+"Joue une scène d’amour très cliché",  
+"Mime un film d’action",  
+"Fais comme si tu étais un roi ou une reine",  
+"Fais semblant de tomber amoureux(se) d’une fourchette",  
+"Fais une pub pour un produit inexistant",  
+"Fais un discours présidentiel ridicule",  
+"Fais semblant d’être à la télé réalité",
+"Fais une scène dramatique avec un stylo",  
+"Fais un monologue de super-vilain",  
+"Fais une chanson d’amour à ton oreiller",  
+"Fais semblant de donner un cours de danse",  
+"Fais un karaoké sans musique",  
+"Imite une voiture qui tombe en panne",  
+"Fais comme si tu volais en avion",  
+"Fais une danse TikTok",  
+"Fais une scène de film d’horreur",  
+"Fais une pub pour du vent",  
+"Imite un influenceur qui se plaint",  
+"Fais comme si tu étais dans un clip romantique",  
+"Raconte un potin ridicule",  
+"Fais semblant de cuisiner un plat imaginaire",  
+"Fais le cri d’un animal sous l’eau",  
+"Fais une crise pour une télécommande",  
+"Fais un câlin à une chaise",  
+"Fais une chanson triste sur une frite",  
+"Imite une vieille personne qui râle",  
+"Fais comme si tu étais au spa",  
+"Fais une déclaration d’amour à la nourriture",  
+"Imite une star qui rate sa chanson",  
+"Fais une danse en slow motion",  
+"Chante tout ce que tu dis pendant 1 minute",
+
+
+            ],
+            truth: [
+                "As-tu déjà menti à ton/ta partenaire",  
+"Quelle est ta plus grande peur en amour",  
+"Quelle est la chose la plus gênante que tu as faite",  
+"As-tu déjà été amoureux(se) en secret",  
+"As-tu déjà stalké quelqu’un",  
+"Quel est ton plus grand regret",  
+"Quelle est ta plus grosse honte",
+"Quel est ton fantasme caché",  
+"As-tu déjà pleuré pour un(e) ex",  
+"Quel est ton plus gros mensonge",  
+"As-tu déjà été infidèle",  
+"As-tu déjà eu honte de quelqu’un que tu fréquentais",  
+"Quel est ton rêve secret",  
+"As-tu déjà embrassé deux personnes le même jour",  
+"As-tu déjà simulé un orgasme",  
+"Quelle est ta pire habitude",  
+"As-tu déjà volé quelque chose",  
+"As-tu déjà été attiré(e) par un(e) prof",  
+"As-tu déjà triché à un test",  
+"Quelle est ta plus grosse bêtise",  
+"As-tu déjà été amoureux(se) d’un(e) ami(e)",  
+"As-tu déjà fait semblant d’aimer quelqu’un",  
+"Quelle est ta phobie",  
+"Quelle est la personne que tu envies",  
+"As-tu déjà envoyé un message que tu as regretté",  
+"As-tu déjà fait une promesse que tu n’as pas tenue",  
+"Quelle est la chose la plus étrange que tu aimes",  
+"As-tu déjà espionné quelqu’un",  
+"As-tu déjà été amoureux(se) de deux personnes à la fois",  
+"Quel est ton plus gros secret",  
+"Qui est ton crush actuel",  
+"As-tu déjà été humilié(e) en public",  
+"As-tu déjà menti en jouant à action ou vérité",  
+"As-tu déjà trahi quelqu’un",  
+"Quelle est ta plus grande faiblesse",  
+"Quelle est la chose que tu ne dirais jamais à tes parents",  
+"Quelle est ta plus grande qualité",  
+"As-tu déjà été rejeté(e)",
+"Quelle est ta plus grande réussite",  
+"As-tu déjà été en couple juste par pitié",  
+"As-tu déjà parlé dans ton sommeil",  
+"Quelle est la chose la plus folle que tu veux faire",  
+"As-tu déjà été amoureux(se) d’un inconnu",  
+"As-tu déjà écrit une lettre d’amour",  
+"As-tu déjà rêvé de quelqu’un ici",  
+"Quelle est ta pire expérience amoureuse",  
+"As-tu déjà eu peur de perdre quelqu’un",  
+"Quel est ton plus grand complexe",  
+"As-tu déjà fouillé dans le téléphone de quelqu’un",  
+"Quelle est la chose qui t’attire en premier",  
+"As-tu déjà été pris en flagrant délit",  
+"Quel est ton souvenir d’enfance le plus fort",  
+"As-tu déjà pleuré pour une série ou un film",  
+"Quel est ton type de personne",  
+"As-tu déjà menti dans ce jeu",  
+"Quelle est la personne que tu regrettes d’avoir perdue",  
+"Quel est ton rêve inavoué",  
+"As-tu déjà été jaloux(se) sans raison",  
+"As-tu déjà fait quelque chose de fou pour de l’amour",
+                "Quel est le plus gros mensonge que vous m'avez dit et que je ne sais pas encore ?",
+                "Quel est votre souvenir le plus embarrassant que vous ne m'avez jamais raconté ?",
+                "Qu'est-ce qui vous rend le plus jaloux dans la relation ?",
+                "Quelle est la chose la plus folle que vous ayez faite pour m'impressionner ?",
+                "Si vous pouviez changer une seule chose dans votre vie passée, quelle serait-elle ?",
+                "Quelle est la dernière chose que vous avez recherchée sur Google ?",
+                "Quelle est la chose que vous aimeriez le plus que nous fassions plus souvent ?",
+                "Quelle est la première pensée que vous avez eue ce matin ?",
+                "Quel est l'achat que vous regrettez le plus d'avoir fait ?"
+            ]
+        };
+
+        // --- ÉTAT DE L'APPLICATION ---
+        let appState = {
+            userName: '',
+            partnerName: '',
+            userGender: '',
+            currentCategory: null,
+            questionsUsed: [],
+            isPartnerTurn: true,
+        };
+
+        // --- FONCTIONS D'INTERFACE UTILISATEUR ET DE NAVIGATION ---
+
+        /** Cache tous les écrans et affiche celui demandé. */
+        function showScreen(screenId) {
+            const screens = ['screen-welcome', 'screen-menu', 'screen-questions', 'screen-aov'];
+            screens.forEach(id => {
+                const screenElement = document.getElementById(id);
+                if (screenElement) {
+                    screenElement.classList.add('hidden');
+                }
+            });
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) {
+                targetScreen.classList.remove('hidden');
+            }
+        }
+
+        /** Affiche le menu principal et met à jour le nom de l'utilisateur. */
+        function showMenu() {
+            if (appState.userName) {
+                document.getElementById('welcome-user').textContent = appState.userName;
+                showScreen('screen-menu');
+                appState.currentCategory = null; // Réinitialiser la catégorie en quittant
+            } else {
+                showScreen('screen-welcome');
+            }
+        }
+
+        /** Gère l'enregistrement de l'utilisateur et passe au menu. */
+        function saveUserInfo() {
+            const userNameInput = document.getElementById('user-name');
+            const partnerNameInput = document.getElementById('partner-name');
+            const userGenderSelect = document.getElementById('user-gender');
+
+            const userName = userNameInput.value.trim();
+            const partnerName = partnerNameInput.value.trim();
+            const userGender = userGenderSelect.value;
+
+            // Logique de VÉRIFICATION EXTRÊMEMENT ROBUSTE
+            if (!userName) {
+                return alertModal("Veuillez entrer votre nom. C'est essentiel pour la personnalisation !", "Attention !");
+            }
+            if (!partnerName) {
+                return alertModal("Veuillez entrer le nom de votre partenaire.", "Attention !");
+            }
+            // La valeur par défaut est "" et doit être changée
+            if (!userGender || userGender === "" || userGender === "Choisir mon genre") { 
+                return alertModal("Veuillez sélectionner votre genre dans la liste.", "Attention !");
+            }
+            
+            // Si tout est bon
+            appState.userName = userName;
+            appState.partnerName = partnerName;
+            appState.userGender = userGender;
+
+            // Enregistrement dans le stockage local pour persistance
+            localStorage.setItem('darlsyAppState', JSON.stringify(appState));
+            
+            showMenu();
+        }
+
+        /** Charge l'état depuis le stockage local (simule la persistance). */
+        function loadAppState() {
+            const savedState = localStorage.getItem('darlsyAppState');
+            if (savedState) {
+                try {
+                    const parsedState = JSON.parse(savedState);
+                    if (parsedState.userName && parsedState.partnerName) {
+                        appState = parsedState;
+                        document.getElementById('user-name').value = appState.userName || '';
+                        document.getElementById('partner-name').value = appState.partnerName || '';
+                        document.getElementById('user-gender').value = appState.userGender || '';
+                        showMenu();
+                        return;
+                    }
+                } catch (e) {
+                    console.error("Erreur de chargement de l'état local:", e);
+                    localStorage.removeItem('darlsyAppState');
+                }
+            }
+            showScreen('screen-welcome');
+        }
+
+        /** Génère les cartes de catégories sur le menu principal. */
+        function renderCategories() {
+            const listContainer = document.getElementById('category-list');
+            if (!listContainer) return;
+
+            listContainer.innerHTML = QUESTIONS_DATA.map(cat => `
+                <div onclick="startCategory('${cat.id}')" 
+                     class="category-card ${cat.color} p-3 rounded-xl shadow-md cursor-pointer flex flex-col items-center text-center space-y-1">
+                    <div class="p-1 rounded-full bg-white bg-opacity-70 transition text-2xl">
+                        ${cat.icon}
+                    </div>
+                    <p class="text-sm font-semibold leading-tight">${cat.title}</p>
+                    <span class="text-xs opacity-70">${cat.questions.length}+ Q</span>
+                </div>
+            `).join('');
+        }
+
+        // --- LOGIQUE DES QUESTIONS PAR CATÉGORIE ---
+
+        /** Démarre une nouvelle catégorie de questions. */
+        function startCategory(categoryId) {
+            appState.currentCategory = QUESTIONS_DATA.find(c => c.id === categoryId);
+            appState.questionsUsed = [];
+
+            if (!appState.currentCategory) return;
+
+            document.getElementById('question-category-title').textContent = appState.currentCategory.title;
+            document.getElementById('total-questions').textContent = appState.currentCategory.questions.length;
+            
+            showScreen('screen-questions');
+            nextQuestion();
+        }
+
+        /** Affiche la prochaine question disponible. */
+        function nextQuestion() {
+            if (!appState.currentCategory) {
+                return showMenu();
+            }
+
+            const questions = appState.currentCategory.questions;
+            
+            if (appState.questionsUsed.length === questions.length) {
+                document.getElementById('current-question').textContent = "C'est tout pour cette catégorie Sylva vous remercie! Vous les avez toutes faites. Retournez au menu pour rejouer ou choisir une autre catégorie.";
+                document.getElementById('question-count').textContent = questions.length;
+                return;
+            }
+
+            let nextIndex;
+            do {
+                nextIndex = Math.floor(Math.random() * questions.length);
+            } while (appState.questionsUsed.includes(nextIndex));
+
+            appState.questionsUsed.push(nextIndex);
+
+            document.getElementById('question-count').textContent = appState.questionsUsed.length;
+            
+            const questionText = questions[nextIndex];
+            
+            document.getElementById('current-question').textContent = questionText;
+        }
+
+        // --- LOGIQUE ACTION OU VÉRITÉ ---
+
+        /** Affiche l'écran Action ou Vérité. */
+        function showAOV() {
+            document.getElementById('aov-challenge').textContent = `C'est le tour de ${appState.isPartnerTurn ? appState.partnerName : appState.userName} ! Quel défi choisir ?`;
+            showScreen('screen-aov');
+        }
+
+        /** Génère un défi Action ou Vérité aléatoire. */
+        function generateAOV(type) {
+            const challenges = AOV_DATA[type];
+            const randomChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+
+            const challenger = appState.isPartnerTurn ? appState.partnerName : appState.userName;
+            
+            const message = `${challenger}, votre ${type === 'action' ? 'Action' : 'Vérité'} est : "${randomChallenge}"`;
+            
+            document.getElementById('aov-challenge').innerHTML = `<span class="font-bold uppercase text-${type === 'action' ? 'orange' : 'cyan'}-600">${type} !</span><br>${message}`;
+
+            appState.isPartnerTurn = !appState.isPartnerTurn;
+        }
+        
+        // --- GESTION MODALE (pour remplacer alert()) ---
+
+        /** Affiche une modale personnalisée (remplace alert()). */
+        function alertModal(message, title = "Information") {
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            
+            if (modalTitle) modalTitle.textContent = title;
+            if (modalBody) modalBody.textContent = message;
+            
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex'); 
+            }
+            if (content) {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+
+            // Animation de sortie
+            if (content) {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+            }
+
+            setTimeout(() => {
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            }, 300); // Temps correspondant à la transition CSS
+        }
+
+
+        // --- GESTION DU SERVICE WORKER (PWA) ---
+        function registerServiceWorker() {
+            // Vérifie si le navigateur supporte les Service Workers
+            if ('serviceWorker' in navigator) {
+                // Utilisation de load, même si window.onload est déjà appelé, pour s'assurer
+                // que tous les éléments DOM sont chargés avant d'enregistrer le SW.
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker PWA enregistré avec succès. Portée:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Échec de l\'enregistrement du ServiceWorker PWA:', error);
+                    });
+            } else {
+                 console.log('Le navigateur ne supporte pas les Service Workers (PWA non disponible).');
+            }
+        }
+
+
+        // --- INITIALISATION ---
+        window.onload = function() {
+            renderCategories(); // Dessine les cartes de catégories
+            loadAppState(); // Charge l'état de l'utilisateur ou affiche l'écran de bienvenue
+            registerServiceWorker(); // Enregistre le PWA Service Worker
+        }
+        
+    </script>
+</body>
+</html>
